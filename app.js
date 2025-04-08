@@ -1,16 +1,34 @@
 const fs = require('fs');
 const express = require('express');
+const morgan = require('morgan');
 
 const app = express();
+
+//1) MIDDLEWARES
+app.use(morgan('dev'));
 app.use(express.json());
+
+app.use((req, res, next) => {
+  console.log('Hello from the middleware 🖐️');
+  next();
+});
+
+app.use((req, res, next) => {
+  req.requestTime = new Date().toISOString();
+  next();
+});
 
 const posts = JSON.parse(
   fs.readFileSync(`${__dirname}/Capstone/dev-data/data/blogs-simple.json`)
 );
 
+//2) Route Handlers
 const getAllPosts = (req, res) => {
+  console.log(req.requestTime);
+
   res.status(200).json({
     status: 'success',
+    requestedAt: req.requestTime,
     results: posts.length,
     data: {
       posts,
@@ -31,6 +49,7 @@ const getPost = (req, res) => {
 
   res.status(200).json({
     status: 'success',
+    requestedAt: req.requestTime,
     data: {
       post,
     },
@@ -48,6 +67,7 @@ const createPost = (req, res) => {
     JSON.stringify(posts),
     (err) => {
       res.status(201).json({
+        requestedAt: req.requestTime,
         status: 'success',
         data: {
           posts: newPost,
@@ -65,6 +85,7 @@ const updatePost = (req, res) => {
     });
   }
   res.status(200).json({
+    requestedAt: req.requestTime,
     status: 'success',
     data: {
       post: '<Updated post here...>',
@@ -81,11 +102,13 @@ const deletePost = (req, res) => {
   }
 
   res.status(204).json({
+    requestedAt: req.requestTime,
     status: 'success',
     data: null,
   });
 };
 
+// 3)Routes
 // app.get('/api/v1/post', getAllPosts);
 // app.post('/api/v1/post', createPost);
 // app.get('/api/v1/post/:id', getPost);
@@ -95,6 +118,7 @@ const deletePost = (req, res) => {
 app.route('/api/v1/post').get(getAllPosts).post(createPost);
 app.route('/api/v1/post/:id').get(getPost).patch(updatePost).delete(deletePost);
 
+// 4)Server
 const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`App is running on port ${PORT}...`);
